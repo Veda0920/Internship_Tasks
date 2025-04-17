@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Quiz App</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+      color: #333;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 30px;
+      background-color: #fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+
+    h1 {
+      color: #ff6f61;
+    }
+
+    .question {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin: 8px 0;
+      padding: 10px;
+      background-color: #eee;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    label:hover {
+      background-color: #dcdcdc;
+    }
+
+    .correct {
+      background-color: #c8e6c9 !important;
+    }
+
+    .wrong {
+      background-color: #ffcdd2 !important;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 1rem;
+      color: white;
+      background-color: #ff6f61;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+
+    button:hover {
+      background-color: #e35b52;
+    }
+
+    #joke-display {
+      font-style: italic;
+      margin-top: 20px;
+      color: #555;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        margin: 20px;
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Interactive Quiz App</h1>
+    <button id="fetch-data-btn">Tell Me a Joke</button>
+    <p id="joke-display"></p>
+    <div id="quiz-container"></div>
+  </div>
+
+  <script>
+    const quizQuestions = [
+      {
+        question: "What is the capital of France?",
+        options: ["Berlin", "Madrid", "Paris", "Rome"],
+        answer: "Paris",
+      },
+      {
+        question: "Which language runs in a web browser?",
+        options: ["Java", "Python", "JavaScript", "C++"],
+        answer: "JavaScript",
+      },
+      {
+        question: "What does CSS stand for?",
+        options: [
+          "Central Style Sheets",
+          "Cascading Style Sheets",
+          "Creative Style Sheets",
+          "Colorful Style Sheets",
+        ],
+        answer: "Cascading Style Sheets",
+      },
+      {
+        question: "Who developed Python?",
+        options: ["Dennis Ritchie", "Guido van Rossum", "James Gosling", "Bjarne Stroustrup"],
+        answer: "Guido van Rossum",
+      },
+      {
+        question: "Which company created ReactJS?",
+        options: ["Google", "Microsoft", "Facebook", "Apple"],
+        answer: "Facebook",
+      },
+    ];
+
+    let currentQuestionIndex = 0;
+    let score = 0;
+
+    function renderQuestion() {
+      const quizContainer = document.getElementById("quiz-container");
+      quizContainer.innerHTML = "";
+      const q = quizQuestions[currentQuestionIndex];
+
+      const questionDiv = document.createElement("div");
+      questionDiv.classList.add("question");
+      questionDiv.innerHTML = `<h3>Q${currentQuestionIndex + 1}: ${q.question}</h3>`;
+
+      q.options.forEach(option => {
+        const label = document.createElement("label");
+        label.innerHTML = `
+          <input type="radio" name="option" value="${option}"> ${option}
+        `;
+        label.addEventListener("click", () => handleAnswer(option, label));
+        questionDiv.appendChild(label);
+      });
+
+      quizContainer.appendChild(questionDiv);
+    }
+
+    function handleAnswer(selected, label) {
+      const correct = quizQuestions[currentQuestionIndex].answer;
+      const labels = document.querySelectorAll("label");
+
+      labels.forEach(l => {
+        const input = l.querySelector("input");
+        if (input.value === correct) {
+          l.classList.add("correct");
+        } else if (input.checked) {
+          l.classList.add("wrong");
+        }
+        l.querySelector("input").disabled = true;
+      });
+
+      if (selected === correct) {
+        score++;
+      }
+
+      setTimeout(() => {
+        currentQuestionIndex++;
+        if (currentQuestionIndex < quizQuestions.length) {
+          renderQuestion();
+        } else {
+          showResult();
+        }
+      }, 1000);
+    }
+
+    function showResult() {
+      const quizContainer = document.getElementById("quiz-container");
+      quizContainer.innerHTML = `<h2>Your Score: ${score} / ${quizQuestions.length}</h2>`;
+    }
+
+    async function fetchJoke() {
+      try {
+        const response = await fetch("https://official-joke-api.appspot.com/random_joke");
+        if (!response.ok) throw new Error("Failed to fetch joke");
+
+        const data = await response.json();
+        document.getElementById("joke-display").textContent = `${data.setup} ... ${data.punchline}`;
+      } catch (error) {
+        console.error(error);
+        alert("Could not fetch joke. Try again later.");
+      }
+    }
+
+    document.getElementById("fetch-data-btn").addEventListener("click", fetchJoke);
+    renderQuestion();
+  </script>
+</body>
+</html>
