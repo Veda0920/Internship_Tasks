@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Book Explorer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/style.min.css" />
+</head>
+<body class="light-mode">
+  <header class="navbar">
+    <div class="container">
+      <div class="logo">📚 Book Explorer</div>
+      <button class="dark-toggle" aria-label="Toggle dark mode">🌙</button>
+      <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+      <nav class="search-container">
+        <input type="text" id="searchInput" placeholder="Search books..." aria-label="Search books"/>
+        <button id="searchBtn" class="search-btn">🔍</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section id="resultsSection" class="card-section">
+      <h2 class="section-title">📚 Search Results</h2>
+      <div id="results" class="book-grid"></div>
+    </section>
+
+    <section id="logSection" class="card-section">
+      <h2 class="section-title">📖 Reading Log</h2>
+      <div id="log" class="book-grid"></div>
+    </section>
+  </main>
+
+  <script src="scripts/app.min.js" defer></script>
+</body>
+</html>
