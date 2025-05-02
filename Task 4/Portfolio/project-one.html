@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>To-Do List App</title>
+  <style>
+    /* Reset some default styles */
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+        Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f4f7f8;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      background: #fff;
+      width: 100%;
+      max-width: 480px;
+      border-radius: 8px;
+      padding: 1.5rem;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      margin-top: 0;
+      text-align: center;
+      font-weight: 700;
+      color: #2c3e50;
+      letter-spacing: 2px;
+    }
+
+    form {
+      margin-bottom: 1.5rem;
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    input[type="text"] {
+      flex-grow: 1;
+      padding: 0.75rem 1rem;
+      border: 2px solid #ddd;
+      border-radius: 4px;
+      font-size: 1rem;
+      transition: border-color 0.3s ease;
+    }
+
+    input[type="text"]:focus {
+      border-color: #3498db;
+      outline: none;
+    }
+
+    button.add-btn {
+      background: #3498db;
+      border: none;
+      color: white;
+      padding: 0 1.25rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      transition: background-color 0.3s ease;
+    }
+
+    button.add-btn:hover,
+    button.add-btn:focus {
+      background: #2980b9;
+      outline: none;
+    }
+
+    .filters {
+      margin-bottom: 1rem;
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+    }
+
+    .filters button {
+      background: transparent;
+      border: none;
+      font-size: 1rem;
+      cursor: pointer;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      color: #555;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .filters button.active,
+    .filters button:hover {
+      background: #3498db;
+      color: #fff;
+      outline: none;
+    }
+
+    ul.todo-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      max-height: 60vh;
+      overflow-y: auto;
+    }
+
+    ul.todo-list li {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #eee;
+      transition: background-color 0.3s ease;
+    }
+
+    ul.todo-list li:last-child {
+      border-bottom: none;
+    }
+
+    ul.todo-list li.completed .task-text {
+      text-decoration: line-through;
+      color: #999;
+    }
+
+    .task-text {
+      flex-grow: 1;
+      font-size: 1rem;
+      word-break: break-word;
+    }
+
+    .task-actions button {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 1.25rem;
+      color: #888;
+      transition: color 0.3s ease;
+      padding: 0.125rem;
+    }
+
+    .task-actions button.delete-btn:hover,
+    .task-actions button.delete-btn:focus {
+      color: #e74c3c;
+      outline: none;
+    }
+
+    .task-actions button.complete-btn:hover,
+    .task-actions button.complete-btn:focus {
+      color: #27ae60;
+      outline: none;
+    }
+
+    /* Scrollbar styling for browsers that support it */
+    ul.todo-list::-webkit-scrollbar {
+      width: 8px;
+    }
+    ul.todo-list::-webkit-scrollbar-track {
+      background: #f4f7f8;
+    }
+    ul.todo-list::-webkit-scrollbar-thumb {
+      background-color: #ccc;
+      border-radius: 20px;
+      border: 2px solid #f4f7f8;
+    }
+
+    /* Responsive */
+    @media (max-width: 400px) {
+      form {
+        flex-direction: column;
+      }
+
+      button.add-btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="container" role="main" aria-label="To-Do List Application">
+    <h1>To-Do List</h1>
+
+    <!-- Form to add new tasks -->
+    <form id="task-form" aria-label="Add new task form">
+      <input
+        type="text"
+        id="task-input"
+        aria-label="Task description"
+        placeholder="Add a new task..."
+        autocomplete="off"
+        required
+      />
+      <button type="submit" class="add-btn" aria-label="Add task">+</button>
+    </form>
+
+    <!-- Filter buttons for tasks -->
+    <nav class="filters" aria-label="Filter tasks">
+      <button type="button" class="filter-btn active" data-filter="all" aria-pressed="true">All</button>
+      <button type="button" class="filter-btn" data-filter="pending" aria-pressed="false">Pending</button>
+      <button type="button" class="filter-btn" data-filter="completed" aria-pressed="false">Completed</button>
+    </nav>
+
+    <!-- To-Do List container -->
+    <ul id="todo-list" class="todo-list" aria-live="polite" aria-relevant="additions removals"></ul>
+  </main>
+
+  <script>
+    // Immediately Invoked Function Expression (IIFE) to avoid polluting global scope
+    (function () {
+      // Select DOM elements
+      const taskForm = document.getElementById('task-form');
+      const taskInput = document.getElementById('task-input');
+      const todoList = document.getElementById('todo-list');
+      const filterButtons = document.querySelectorAll('.filter-btn');
+
+      // Key for localStorage
+      const STORAGE_KEY = 'todoTasks';
+
+      // Current filter state - can be 'all', 'completed', or 'pending'
+      let currentFilter = 'all';
+
+      // Array to hold task objects { id, text, completed }
+      let tasks = [];
+
+      /**
+       * Save tasks array to localStorage
+       */
+      function saveTasks() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      }
+
+      /**
+       * Load tasks array from localStorage
+       */
+      function loadTasks() {
+        const storedTasks = localStorage.getItem(STORAGE_KEY);
+        if (storedTasks) {
+          try {
+            tasks = JSON.parse(storedTasks);
+          } catch (error) {
+            // If JSON parsing fails, reset tasks to empty array
+            tasks = [];
+            console.error('Failed to parse tasks from localStorage:', error);
+          }
+        }
+      }
+
+      /**
+       * Generate unique ID for each task
+       * Uses timestamp and random component to reduce collisions
+       */
+      function generateId() {
+        return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+      }
+
+      /**
+       * Create a DOM element for a task and return it
+       * @param {Object} task - task object with id, text, completed
+       * @returns {HTMLElement} li element representing the task
+       */
+      function createTaskElement(task) {
+        const li = document.createElement('li');
+        li.setAttribute('data-id', task.id);
+        li.className = task.completed ? 'completed' : '';
+
+        // Checkbox / Completion toggle button for accessibility
+        const completeBtn = document.createElement('button');
+        completeBtn.className = 'complete-btn';
+        completeBtn.setAttribute('aria-label', task.completed ? `Mark task "${task.text}" as pending` : `Mark task "${task.text}" as completed`);
+        completeBtn.setAttribute('title', task.completed ? 'Undo complete' : 'Mark complete');
+        completeBtn.type = 'button';
+        completeBtn.innerHTML = task.completed
+          ? '&#x2714;' // Checkmark for completed
+          : '&#x25CB;'; // Circle for pending
+        completeBtn.addEventListener('click', () => toggleCompleted(task.id));
+
+        // Task text span
+        const taskText = document.createElement('span');
+        taskText.className = 'task-text';
+        taskText.textContent = task.text;
+
+        // Delete button
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.setAttribute('aria-label', `Delete task: ${task.text}`);
+        deleteBtn.setAttribute('title', 'Delete task');
+        deleteBtn.type = 'button';
+        deleteBtn.innerHTML = '&#x2716;'; // Cross mark
+        deleteBtn.addEventListener('click', () => deleteTask(task.id));
+
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'task-actions';
+        actionsDiv.appendChild(completeBtn);
+        actionsDiv.appendChild(deleteBtn);
+
+        li.appendChild(actionsDiv);
+        li.appendChild(taskText);
+
+        return li;
+      }
+
+      /**
+       * Render the list of tasks based on the current filter
+       */
+      function renderTasks() {
+        // Clear the current list
+        todoList.innerHTML = '';
+
+        // Filter tasks by currentFilter setting
+        let filteredTasks = [];
+        switch (currentFilter) {
+          case 'completed':
+            filteredTasks = tasks.filter(task => task.completed);
+            break;
+          case 'pending':
+            filteredTasks = tasks.filter(task => !task.completed);
+            break;
+          default:
+            filteredTasks = tasks;
+        }
+
+        // Append filtered tasks to the list
+        if (filteredTasks.length === 0) {
+          // Show placeholder text if no tasks to show
+          const emptyMessage = document.createElement('li');
+          emptyMessage.textContent = 'No tasks to display.';
+          emptyMessage.style.textAlign = 'center';
+          emptyMessage.style.color = '#777';
+          todoList.appendChild(emptyMessage);
+          return;
+        }
+
+        filteredTasks.forEach(task => {
+          const taskElement = createTaskElement(task);
+          todoList.appendChild(taskElement);
+        });
+      }
+
+      /**
+       * Add a new task with given text
+       * @param {string} text - task description text
+       */
+      function addTask(text) {
+        // Trim and validate input
+        const trimmedText = text.trim();
+        if (!trimmedText) return;
+
+        const newTask = {
+          id: generateId(),
+          text: trimmedText,
+          completed: false,
+        };
+        tasks.push(newTask);
+        saveTasks();
+        renderTasks();
+      }
+
+      /**
+       * Toggle completion status for the task with given id
+       * @param {string} id - task id
+       */
+      function toggleCompleted(id) {
+        tasks = tasks.map(task =>
+          task.id === id ? { ...task, completed: !task.completed } : task
+        );
+        saveTasks();
+        renderTasks();
+      }
+
+      /**
+       * Delete the task with given id
+       * @param {string} id - task id
+       */
+      function deleteTask(id) {
+        tasks = tasks.filter(task => task.id !== id);
+        saveTasks();
+        renderTasks();
+      }
+
+      /**
+       * Set the current filter and update UI accordingly
+       * @param {string} filter - one of 'all', 'completed', 'pending'
+       */
+      function setFilter(filter) {
+        currentFilter = filter;
+        // Update aria-pressed for accessibility and visual states
+        filterButtons.forEach(btn => {
+          if (btn.dataset.filter === filter) {
+            btn.classList.add('active');
+            btn.setAttribute('aria-pressed', 'true');
+          } else {
+            btn.classList.remove('active');
+            btn.setAttribute('aria-pressed', 'false');
+          }
+        });
+        renderTasks();
+      }
+
+      /**
+       * Event handler for form submit - add new task
+       */
+      function onFormSubmit(event) {
+        event.preventDefault(); // Prevent page reload
+        addTask(taskInput.value);
+        taskInput.value = '';
+        taskInput.focus();
+      }
+
+      /**
+       * Event handler for filter button click
+       */
+      function onFilterClick(event) {
+        const filter = event.target.dataset.filter;
+        if (filter) {
+          setFilter(filter);
+        }
+      }
+
+      /**
+       * Initialize the app:
+       * - load tasks from storage
+       * - register event listeners
+       * - render initial task list
+       */
+      function init() {
+        loadTasks();
+        renderTasks();
+
+        taskForm.addEventListener('submit', onFormSubmit);
+        filterButtons.forEach(btn => btn.addEventListener('click', onFilterClick));
+      }
+
+      // Initialize app on DOMContentLoaded event for safety
+      document.addEventListener('DOMContentLoaded', init);
+    })();
+  </script>
+</body>
+</html>
+
+

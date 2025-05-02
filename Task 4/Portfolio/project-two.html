@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Product Listing Page with Filtering and Sorting Options</title>
+  <style>
+    /* Reset & Base */
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f9fafb;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-weight: 700;
+      color: #222;
+    }
+    /* Layout */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 25px;
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 6px rgb(0 0 0 / 0.1);
+    }
+    .filter-group {
+      flex: 1 1 220px;
+      min-width: 200px;
+    }
+    .filter-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #444;
+      user-select: none;
+    }
+    select,
+    input[type="number"] {
+      width: 100%;
+      padding: 7px 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 1rem;
+      font-family: inherit;
+      transition: border-color 0.3s ease;
+    }
+    select:focus,
+    input[type="number"]:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 4px #3b82f6aa;
+    }
+    /* Product Grid */
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit,minmax(240px,1fr));
+      gap: 20px;
+    }
+    .product-card {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgb(0 0 0 / 0.08);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: box-shadow 0.3s ease;
+    }
+    .product-card:hover {
+      box-shadow: 0 8px 20px rgb(0 0 0 / 0.15);
+    }
+    .product-image {
+      width: 100%;
+      object-fit: cover;
+      aspect-ratio: 4 / 3;
+    }
+    .product-info {
+      padding: 15px 18px;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .product-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin: 0 0 6px 0;
+      color: #111;
+    }
+    .product-category {
+      font-size: 0.9rem;
+      font-style: italic;
+      color: #666;
+      margin-bottom: 10px;
+      user-select: none;
+    }
+    .price-rating {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 700;
+    }
+    .product-price {
+      color: #059669; /* green */
+      font-size: 1.1rem;
+    }
+    .product-rating {
+      background-color: #fbbf24; /* yellow */
+      color: #92400e;
+      font-weight: 700;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 0.9rem;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .star {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      background-color: #92400e;
+      clip-path: polygon(
+        50% 0%,
+        61% 35%,
+        98% 35%,
+        68% 57%,
+        79% 91%,
+        50% 70%,
+        21% 91%,
+        32% 57%,
+        2% 35%,
+        39% 35%
+      );
+    }
+    /* Responsive tweaks */
+    @media (max-width: 600px) {
+      .controls {
+        flex-direction: column;
+      }
+      .filter-group {
+        min-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Product Listing</h1>
+    <div class="controls" aria-label="Product Filters and Sorting">
+      <div class="filter-group" id="category-filter-group">
+        <label for="categoryFilter">Filter by Category:</label>
+        <select id="categoryFilter" aria-controls="productGrid" aria-label="Filter products by category">
+          <option value="all">All Categories</option>
+        </select>
+      </div>
+      <div class="filter-group" id="price-filter-group">
+        <label>Filter by Price Range:</label>
+        <div style="display: flex; gap: 10px;">
+          <input type="number" id="priceMin" placeholder="Min Price" min="0" aria-label="Minimum price filter" />
+          <input type="number" id="priceMax" placeholder="Max Price" min="0" aria-label="Maximum price filter" />
+        </div>
+      </div>
+      <div class="filter-group" id="sort-group">
+        <label for="sortSelect">Sort Products:</label>
+        <select id="sortSelect" aria-controls="productGrid" aria-label="Sort products">
+          <option value="default">Default</option>
+          <option value="priceAsc">Price: Low to High</option>
+          <option value="priceDesc">Price: High to Low</option>
+          <option value="ratingDesc">Rating: High to Low</option>
+        </select>
+      </div>
+    </div>
+    <div class="product-grid" id="productGrid" aria-live="polite" aria-label="Product list">
+      <!-- Product cards inserted dynamically -->
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // Dummy product data array with image, name, category, price, rating
+      const products = [
+        {
+          id: 1,
+          name: "Classic Leather Wallet",
+          category: "Accessories",
+          price: 49.99,
+          rating: 4.5,
+          image: "https://images.unsplash.com/photo-1624538000860-24716b9050f2?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D?auto=compress&cs=tinysrgb&w=600"
+        },
+        {
+          id: 2,
+          name: "Wireless Bluetooth Headphones",
+          category: "Electronics",
+          price: 89.95,
+          rating: 4.7,
+          image: "https://images.unsplash.com/photo-1674989844487-722ec77b9b81?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D?auto=compress&cs=tinysrgb&w=600"
+        },
+        {
+          id: 3,
+          name: "Men's Casual Sneakers",
+          category: "Footwear",
+          price: 59.50,
+          rating: 4.2,
+          image: "https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg?auto=compress&cs=tinysrgb&w=600"
+        },
+        {
+          id: 4,
+          name: "Cotton Summer Dress",
+          category: "Clothing",
+          price: 35.00,
+          rating: 4.1,
+          image: "https://images.unsplash.com/photo-1669491477000-6e4ccc35a4ca?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fGNvdHRvbiUyMHN1bW1lciUyMGRyZXNzfGVufDB8fDB8fHww?auto=compress&cs=tinysrgb&w=600"
+        },
+        {
+          id: 5,
+          name: "Smart Fitness Watch",
+          category: "Electronics",
+          price: 120.00,
+          rating: 4.8,
+          image: "https://images.unsplash.com/photo-1634466511686-a978c60a4965?q=80&w=1932&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D?auto=compress&cs=tinysrgb&w=600"
+        },
+        {
+          id: 6,
+          name: "Elegant Silk Scarf",
+          category: "Accessories",
+          price: 22.99,
+          rating: 4.0,
+          image: "https://images.unsplash.com/photo-1620740199226-2420c2fcaa18?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTF8fGVsZWdhbnQlMjBzaWxrJTIwc2NhcmZ8ZW58MHx8MHx8fDA%3D?auto=compress&cs=tinysrgb&w=600"
+        },
+        {
+          id: 7,
+          name: "Kids' Running Shoes",
+          category: "Footwear",
+          price: 38.75,
+          rating: 4.3,
+          image: "https://images.unsplash.com/photo-1577076094281-a02b267670f9?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjM4fHxraWRzJTIwcnVubmluZyUyMHNob2VzfGVufDB8fDB8fHww?auto=compress&cs=tinysrgb&w=600"
+        },
+        {
+          id: 8,
+          name: "Men's Denim Jacket",
+          category: "Clothing",
+          price: 79.99,
+          rating: 4.6,
+          image: "https://images.unsplash.com/photo-1621867431223-7c96c3ba50df?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTl8fE1lbidzJTIwRGVuaW0lMjBKYWNrZXR8ZW58MHx8MHx8fDA%3D?auto=compress&cs=tinysrgb&w=600"
+        },
+        {
+          id: 9,
+          name: "Noise Cancelling Earbuds",
+          category: "Electronics",
+          price: 65.50,
+          rating: 4.4,
+          image: "https://images.unsplash.com/photo-1722448113450-f6860b7fbfe5?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8ODN8fE5vaXNlJTIwQ2FuY2VsbGluZyUyMEVhcmJ1ZHN8ZW58MHx8MHx8fDA%3D?auto=compress&cs=tinysrgb&w=600"
+        },
+        {
+          id: 10,
+          name: "Women's Handbag",
+          category: "Accessories",
+          price: 58.25,
+          rating: 4.3,
+          image: "https://plus.unsplash.com/premium_photo-1664392147011-2a720f214e01?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8V29tZW4ncyUyMEhhbmRiYWd8ZW58MHx8MHx8fDA%3D?auto=compress&cs=tinysrgb&w=600"
+        }
+      ];
+
+      // DOM references
+      const productGrid = document.getElementById('productGrid');
+      const categoryFilter = document.getElementById('categoryFilter');
+      const priceMinInput = document.getElementById('priceMin');
+      const priceMaxInput = document.getElementById('priceMax');
+      const sortSelect = document.getElementById('sortSelect');
+
+      // Set of unique categories from products
+      const categories = [...new Set(products.map(p => p.category))].sort();
+
+      // Initialize category filter select options
+      function populateCategoryFilter() {
+        categories.forEach(cat => {
+          const option = document.createElement('option');
+          option.value = cat;
+          option.textContent = cat;
+          categoryFilter.appendChild(option);
+        });
+      }
+
+      // Format price as currency
+      function formatPrice(value) {
+        return `$${value.toFixed(2)}`;
+      }
+
+      // Create star rating element horizontally repeating stars for integer part and half star for 0.5
+      function createStarRating(rating) {
+        const starTotal = 5;
+        const starElement = document.createElement('span');
+        starElement.className = 'product-rating';
+
+        // Round rating to nearest half
+        const roundedRating = Math.round(rating * 2) / 2;
+
+        // Create full stars
+        const fullStars = Math.floor(roundedRating);
+        for (let i = 0; i < fullStars; i++) {
+          const star = document.createElement('span');
+          star.classList.add('star');
+          starElement.appendChild(star);
+        }
+        // Add half star if needed
+        if (roundedRating % 1 !== 0) {
+          const halfStar = document.createElement('span');
+          halfStar.textContent = '★'; // Unicode black star for half (approximate)
+          halfStar.style.color = '#fbbf24';
+          halfStar.style.opacity = '0.5';
+          halfStar.style.fontSize = '14px';
+          starElement.appendChild(halfStar);
+        }
+        // Fill empty stars with outline or transparent to show 5 stars max
+        const emptyStars = starTotal - Math.ceil(roundedRating);
+        for (let i = 0; i < emptyStars; i++) {
+          const emptyStar = document.createElement('span');
+          emptyStar.classList.add('star');
+          emptyStar.style.backgroundColor = '#ddd';
+          starElement.appendChild(emptyStar);
+        }
+
+        // Append rating number as text
+        const ratingText = document.createElement('span');
+        ratingText.textContent = rating.toFixed(1);
+        ratingText.style.marginLeft = '6px';
+        ratingText.style.color = '#92400e';
+        starElement.appendChild(ratingText);
+
+        return starElement;
+      }
+
+      // Render product cards in the grid
+      function renderProducts(productsToRender) {
+        productGrid.innerHTML = ''; // Clear current
+
+        if (productsToRender.length === 0) {
+          const noResults = document.createElement('div');
+          noResults.textContent = 'No products match the selected filters.';
+          noResults.style.gridColumn = '1 / -1';
+          noResults.style.padding = '20px';
+          noResults.style.textAlign = 'center';
+          noResults.style.color = '#888';
+          productGrid.appendChild(noResults);
+          return;
+        }
+
+        productsToRender.forEach(product => {
+          // Card wrapper
+          const card = document.createElement('article');
+          card.className = 'product-card';
+          card.setAttribute('tabindex', '0');
+          card.setAttribute('aria-label', `${product.name}, category: ${product.category}, price: ${formatPrice(product.price)}, rating: ${product.rating.toFixed(1)} stars`);
+
+          // Image
+          const img = document.createElement('img');
+          img.className = 'product-image';
+          img.src = product.image;
+          img.alt = product.name;
+          card.appendChild(img);
+
+          // Info container
+          const info = document.createElement('div');
+          info.className = 'product-info';
+
+          // Name
+          const name = document.createElement('h2');
+          name.className = 'product-name';
+          name.textContent = product.name;
+          info.appendChild(name);
+
+          // Category
+          const category = document.createElement('p');
+          category.className = 'product-category';
+          category.textContent = product.category;
+          info.appendChild(category);
+
+          // Price and rating container
+          const pr = document.createElement('div');
+          pr.className = 'price-rating';
+
+          const price = document.createElement('span');
+          price.className = 'product-price';
+          price.textContent = formatPrice(product.price);
+          pr.appendChild(price);
+
+          pr.appendChild(createStarRating(product.rating));
+
+          info.appendChild(pr);
+
+          card.appendChild(info);
+
+          productGrid.appendChild(card);
+        });
+      }
+
+      // Retrieve current filter/sort values and filter/sort products accordingly
+      function filterAndSortProducts() {
+        const catFilterVal = categoryFilter.value;
+        const minPriceStr = priceMinInput.value.trim();
+        const maxPriceStr = priceMaxInput.value.trim();
+        const sortVal = sortSelect.value;
+
+        let filtered = products.slice();
+
+        // Filter by category
+        if (catFilterVal !== 'all') {
+          filtered = filtered.filter(p => p.category === catFilterVal);
+        }
+
+        // Filter by price min and max
+        const minPrice = minPriceStr ? parseFloat(minPriceStr) : null;
+        const maxPrice = maxPriceStr ? parseFloat(maxPriceStr) : null;
+        if (minPrice !== null && !isNaN(minPrice)) {
+          filtered = filtered.filter(p => p.price >= minPrice);
+        }
+        if (maxPrice !== null && !isNaN(maxPrice)) {
+          filtered = filtered.filter(p => p.price <= maxPrice);
+        }
+
+        // Sort
+        switch (sortVal) {
+          case 'priceAsc':
+            filtered.sort((a, b) => a.price - b.price);
+            break;
+          case 'priceDesc':
+            filtered.sort((a, b) => b.price - a.price);
+            break;
+          case 'ratingDesc':
+            filtered.sort((a, b) => b.rating - a.rating);
+            break;
+          // default no sort or original order
+        }
+
+        renderProducts(filtered);
+      }
+
+      // Event listeners for controls
+      function attachEventListeners() {
+        categoryFilter.addEventListener('change', filterAndSortProducts);
+        priceMinInput.addEventListener('input', filterAndSortProducts);
+        priceMaxInput.addEventListener('input', filterAndSortProducts);
+        sortSelect.addEventListener('change', filterAndSortProducts);
+      }
+
+      // Initialization
+      function init() {
+        populateCategoryFilter();
+        attachEventListeners();
+        renderProducts(products);
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
+
+
